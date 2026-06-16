@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Шашки — онлайн, с компьютером, вдвоём</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ШАПКА -->
+  <div class="topbar">
+    <div class="brand">
+      <div class="logo"></div>
+      <div>
+        <h1>Шашки</h1>
+        <small>русские правила · онлайн · с ИИ · вдвоём</small>
+      </div>
+    </div>
+    <div class="account" id="account">
+      <!-- заполняется из JS -->
+    </div>
+  </div>
+
+  <!-- ЭКРАН: МЕНЮ -->
+  <section class="screen active" id="screen-menu">
+    <div class="menu-head">
+      <h2>Выберите режим игры</h2>
+      <p>Полные правила русских шашек: обязательное взятие, цепочки, дамки</p>
+    </div>
+    <div class="cards">
+      <div class="card">
+        <div class="ico">🌐</div>
+        <h3>Онлайн на ставку</h3>
+        <p>Рейтинговый матч. Нужен аккаунт. Ставка — внутриигровые монеты.</p>
+        <button class="btn" onclick="goOnline()">Играть</button>
+      </div>
+      <div class="card">
+        <div class="ico">🤖</div>
+        <h3>С компьютером</h3>
+        <p>Соперник-ИИ. Выберите уровень сложности.</p>
+        <div class="seg" id="diffSeg">
+          <button data-d="easy">Лёгкий</button>
+          <button data-d="medium" class="sel">Средний</button>
+          <button data-d="hard">Сложный</button>
+        </div>
+        <button class="btn" onclick="startVsComputer()">Играть</button>
+      </div>
+      <div class="card">
+        <div class="ico">👥</div>
+        <h3>Вдвоём</h3>
+        <p>Два игрока за одним устройством, по очереди.</p>
+        <button class="btn" onclick="startLocal()">Играть</button>
+      </div>
+    </div>
+    <p class="hint">Аккаунт сохраняется в этом браузере (localStorage). Монеты — виртуальные, без реальных денег.</p>
+  </section>
+
+  <!-- ЭКРАН: АВТОРИЗАЦИЯ -->
+  <section class="screen" id="screen-auth">
+    <div class="panel">
+      <h2>Вход в аккаунт</h2>
+      <p class="sub">Только логин и пароль — без кодов и SMS</p>
+      <div class="tabs">
+        <button id="tab-login" class="sel" onclick="switchTab('login')">Вход</button>
+        <button id="tab-reg" onclick="switchTab('reg')">Регистрация</button>
+      </div>
+      <div class="field">
+        <label>Логин</label>
+        <input id="in-login" type="text" autocomplete="username" placeholder="например, dama_player" />
+      </div>
+      <div class="field">
+        <label>Пароль</label>
+        <input id="in-pass" type="password" autocomplete="current-password" placeholder="••••••" />
+      </div>
+      <div class="field" id="field-pass2" style="display:none">
+        <label>Повторите пароль</label>
+        <input id="in-pass2" type="password" placeholder="••••••" />
+      </div>
+      <div class="msg" id="auth-msg"></div>
+      <button class="btn" style="width:100%;margin-top:6px" id="auth-submit" onclick="submitAuth()">Войти</button>
+      <button class="btn ghost" style="width:100%;margin-top:8px" onclick="show('menu')">← В меню</button>
+      <p class="hint">При регистрации начисляется <b>1000 монет</b> на старт.</p>
+    </div>
+  </section>
+
+  <!-- ЭКРАН: ЛОББИ СТАВОК -->
+  <section class="screen" id="screen-lobby">
+    <div class="panel">
+      <h2>Онлайн-матч</h2>
+      <p class="sub">Выберите ставку и начните рейтинговую партию</p>
+      <div class="box-stats" id="lobby-stats" style="background:#f0e2cd;border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:14px"></div>
+      <label style="font-size:13px;font-weight:600;color:var(--coffee-2)">Ставка (монеты)</label>
+      <div class="stake-grid" id="stakeGrid">
+        <button data-s="50">50</button>
+        <button data-s="100" class="sel">100</button>
+        <button data-s="250">250</button>
+        <button data-s="500">500</button>
+      </div>
+      <div class="msg" id="lobby-msg"></div>
+      <button class="btn" style="width:100%;margin-top:10px" id="findBtn" onclick="startOnlineMatch()">🔎 Найти соперника</button>
+      <button class="btn ghost" style="width:100%;margin-top:8px" onclick="claimBonus()" id="bonusBtn">🎁 Получить ежедневный бонус (+200)</button>
+      <button class="btn ghost" style="width:100%;margin-top:8px" onclick="show('menu')">← В меню</button>
+      <p class="hint">Победа: +ставка и +25 рейтинга. Поражение: −ставка и −15 рейтинга. Ничья — ставка возвращается.</p>
+    </div>
+  </section>
+
+  <!-- ЭКРАН: ИГРА -->
+  <section class="screen" id="screen-game">
+    <div class="game-top">
+      <button class="btn ghost small" onclick="confirmQuit()">← Выйти</button>
+      <div class="turn-banner">
+        <span class="dot" id="turn-dot"></span>
+        <span id="turn-text">Ход белых</span>
+      </div>
+      <div style="width:80px"></div>
+    </div>
+    <div class="game-grid">
+      <div class="board-frame">
+        <div class="board" id="board"></div>
+      </div>
+      <div class="side">
+        <div class="box">
+          <h3 id="mode-title">Партия</h3>
+          <div class="stat-row"><span id="lbl-white">Белые</span><b id="cnt-white">12</b></div>
+          <div class="stat-row"><span id="lbl-black">Чёрные</span><b id="cnt-black">12</b></div>
+          <div class="stat-row" id="stake-row" style="display:none"><span>Ставка</span><b id="stake-val">—</b></div>
+        </div>
+        <div class="box actions">
+          <button class="btn ghost small" onclick="undoMove()" id="undoBtn">↶ Отменить ход</button>
+          <button class="btn ghost small" onclick="offerDraw()" id="drawBtn">🤝 Ничья</button>
+          <button class="btn dark small" onclick="resign()" id="resignBtn">🏳 Сдаться</button>
+        </div>
+        <div class="box" id="rules-box">
+          <h3>Правила (кратко)</h3>
+          <p style="font-size:12px;color:var(--muted);line-height:1.6;margin:0">
+            Шашки ходят по диагонали вперёд. Бить можно <b>вперёд и назад</b>. Взятие <b>обязательно</b>,
+            а начатую цепочку нужно закончить. Дойдя до последнего ряда, шашка становится <b>дамкой</b>
+            и ходит/бьёт на любое расстояние по диагонали.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- МОДАЛКА -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="big" id="m-icon">🏆</div>
+    <h2 id="m-title">Победа!</h2>
+    <p id="m-text">Партия завершена.</p>
+    <div class="reward" id="m-reward" style="display:none"></div>
+    <div class="row">
+      <button class="btn ghost" onclick="closeModal();show('menu')">В меню</button>
+      <button class="btn" id="m-again" onclick="playAgain()">Ещё раз</button>
+    </div>
+  </div>
+</div>
+<script src="script.js"></script>
+</body>
+</html>
